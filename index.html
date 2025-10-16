@@ -1,277 +1,285 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>novel_demo - fixed</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pixi + Monogatari + GSAP Demo</title>
 
-<!-- Google Font -->
-<link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="style.css">
+  <!-- CDNs -->
+  <!-- PIXI (from cdnjs) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.13.2/pixi.min.js"></script>
+  <!-- GSAP -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <!-- Monogatari (engine). Using a release from the official repo via jsDelivr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Monogatari/Monogatari@v2.0.2/dist/monogatari.css">
+  <script src="https://cdn.jsdelivr.net/gh/Monogatari/Monogatari@v2.0.2/dist/monogatari.min.js"></script>
 
-<!-- TyranoScript (attempt via CDN) 
-     NOTE: Tyrano CDN availability varies. We attempt to load it but do NOT rely on it.
--->
-<script src="https://cdn.jsdelivr.net/gh/ShikemokuMK/tyranoscript/tyrano/tyrano.core.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/ShikemokuMK/tyranoscript/tyrano/lang/ja.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/ShikemokuMK/tyranoscript/tyrano/tyrano.plugin.kag.js"></script>
+  <style>
+    html,body{height:100%;margin:0;background:#111;color:#eee;font-family:'Noto Sans JP',system-ui, sans-serif}
+    #game-root{display:flex;height:100vh;width:100%;overflow:hidden}
+    #pixi-canvas{flex:1;position:relative}
+    /* Position monogatari UI on the right as an example */
+    .monogatari-container{width:420px;max-width:40%;background:transparent}
 
-<!-- External libraries (CDN) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.8/browser/pixi.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.1.0/typed.min.js"></script>
+    /* Override monogatari text box style to use custom font and look */
+    .monogatari .nm-box {
+      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(10,10,10,0.9));
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      font-family: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .monogatari .nm-box .name {font-weight:700;color:#ffd47f}
 
-<!-- custom effects (robust) -->
-<script src="data/others/plugin/custom_effects.js"></script>
+    /* Hide default monogatari background to let Pixi draw it */
+    .monogatari .background {display:none}
 
+    /* Quick responsive tweak */
+    @media (max-width:900px){
+      .monogatari-container{position:absolute;right:8px;bottom:8px;z-index:20;width:95%;max-width:none}
+      #pixi-canvas{height:100vh}
+    }
+
+    /* Small helper for overlay fade */
+    #fade-overlay{position:absolute;inset:0;background:#000;pointer-events:none;opacity:0;z-index:40}
+  </style>
 </head>
 <body>
-  <div id="tyrano_base"></div>
 
-  <script>
-  /**
-   * 起動ロジック：
-   *  - Tyrano が利用可能で正常に初期化できれば Tyrano を使う
-   *  - それ以外はフォールバックの簡易デモ（DOM ベース）を実行
-   */
-  (function(){
-    function startTyranoIfPossible(){
-      try {
-        // tyrano.plugin.kag が存在し、init 関数があるならそれを使う
-        if (window.tyrano && tyrano.plugin && tyrano.plugin.kag && typeof tyrano.plugin.kag.init === 'function') {
-          console.log("Tyrano detected — initializing tyrano.plugin.kag.init()");
-          // Tyrano の初期化（エンジンによっては init の呼び方が異なる場合があるため try/catch）
-          try {
-            tyrano.plugin.kag.init();
-            return true;
-          } catch(e){
-            console.warn("tyrano.plugin.kag.init() failed:", e);
-            return false;
-          }
-        }
-      } catch(e){
-        console.warn("tyrano check error:", e);
-        return false;
-      }
-      return false;
-    }
+<div id="game-root">
+  <div id="pixi-canvas"></div>
+  <div class="monogatari-container">
+    <!-- Monogatari injects UI here -->
+    <div id="game" class="monogatari"></div>
+  </div>
+</div>
 
-    function startFallbackDemo(){
-      console.log("Starting fallback demo (no/old Tyrano).");
-      // 簡易ノベルDOMを生成して、custom_effects の関数を呼び出す
-      const base = document.getElementById('tyrano_base');
+<div id="fade-overlay"></div>
 
-      // クリア
-      base.innerHTML = '';
+<script>
+// -------------------- PIXI setup --------------------
+const app = new PIXI.Application({
+  width: 1280,
+  height: 720,
+  backgroundColor: 0x222222,
+  resizeTo: document.getElementById('pixi-canvas')
+});
+document.getElementById('pixi-canvas').appendChild(app.view);
 
-      // 背景
-      const bg = document.createElement('div');
-      bg.id = 'fallback_bg';
-      bg.style.position = 'fixed';
-      bg.style.left = 0;
-      bg.style.top = 0;
-      bg.style.width = '100%';
-      bg.style.height = '100%';
-      bg.style.backgroundSize = 'cover';
-      bg.style.backgroundPosition = 'center';
-      bg.style.zIndex = 1;
-      bg.style.backgroundImage = 'url("data/image/bg_stage1.jpg")';
-      base.appendChild(bg);
+// Stage container: backgrounds, characters, effects
+const bgContainer = new PIXI.Container();
+const charContainer = new PIXI.Container();
+const fxContainer = new PIXI.Container();
+app.stage.addChild(bgContainer, charContainer, fxContainer);
 
-      // キャラレイヤー
-      const charLayer = document.createElement('div');
-      charLayer.id = 'fallback_chars';
-      charLayer.style.position = 'fixed';
-      charLayer.style.left = 0;
-      charLayer.style.top = 0;
-      charLayer.style.width = '100%';
-      charLayer.style.height = '100%';
-      charLayer.style.zIndex = 2;
-      base.appendChild(charLayer);
+// Simple assets (using data urls / simple graphics so CDN-free demo)
+// Backgrounds: generate plain-color textures for demo
+function makeBgTexture(color){
+  const g = new PIXI.Graphics();
+  g.beginFill(color); g.drawRect(0,0,1280,720); g.endFill();
+  return app.renderer.generateTexture(g);
+}
+const bgTextures = {
+  classroom: makeBgTexture(0x2b2f4a),
+  park: makeBgTexture(0x2b5f4a),
+  city: makeBgTexture(0x3a2b4a)
+};
 
-      const hero = document.createElement('img');
-      hero.src = 'data/image/char_hero.png';
-      hero.style.position = 'absolute';
-      hero.style.left = '8%';
-      hero.style.bottom = '12%';
-      hero.style.width = '28%';
-      hero.style.maxWidth = '380px';
-      charLayer.appendChild(hero);
+let currentBgSprite = new PIXI.Sprite(bgTextures.classroom);
+currentBgSprite.width = app.screen.width; currentBgSprite.height = app.screen.height;
+bgContainer.addChild(currentBgSprite);
 
-      const friend = document.createElement('img');
-      friend.src = 'data/image/char_friend.png';
-      friend.style.position = 'absolute';
-      friend.style.right = '8%';
-      friend.style.bottom = '12%';
-      friend.style.width = '28%';
-      friend.style.maxWidth = '380px';
-      charLayer.appendChild(friend);
+// Characters: simple colored rectangles with a name label texture
+function makeCharacterSprite(name, color){
+  const g = new PIXI.Graphics();
+  g.beginFill(color); g.drawRoundedRect(0,0,320,520,12); g.endFill();
+  const texture = app.renderer.generateTexture(g);
+  const s = new PIXI.Sprite(texture);
+  s.anchor.set(0.5,1);
+  s.x = app.screen.width * 0.5;
+  s.y = app.screen.height * 0.9;
+  s.scale.set(0.9);
+  s.interactive = false;
+  s.name = name;
+  // Name tag
+  const nameText = new PIXI.Text(name, {fontFamily:'Noto Sans JP',fontSize:20,fill:0xffffff});
+  nameText.anchor.set(0.5,0);
+  nameText.y = -s.height - 10;
+  s.addChild(nameText);
+  return s;
+}
+const characters = {
+  Alice: makeCharacterSprite('Alice', 0xff7f7f),
+  Bob: makeCharacterSprite('Bob', 0x7fbfff)
+};n
+// place characters off-screen initially
+characters.Alice.x = app.screen.width * 0.3; characters.Alice.alpha = 0; charContainer.addChild(characters.Alice);
+characters.Bob.x = app.screen.width * 0.7; characters.Bob.alpha = 0; charContainer.addChild(characters.Bob);
 
-      // メッセージウィンドウ
-      const msg = document.createElement('div');
-      msg.id = 'fallback_msg';
-      msg.className = 'message_window';
-      msg.style.zIndex = 3;
-      base.appendChild(msg);
+// Simple particle system (circles)
+const particles = [];
+function spawnParticles(x,y,amount=30){
+  for(let i=0;i<amount;i++){
+    const g = new PIXI.Graphics();
+    g.beginFill(0xffffff, 0.9); g.drawCircle(0,0,4); g.endFill();
+    const sprite = new PIXI.Sprite(app.renderer.generateTexture(g));
+    sprite.x = x; sprite.y = y;
+    sprite.vx = (Math.random()-0.5)*6; sprite.vy = (Math.random()-1.5)*6; sprite.life = 60 + Math.random()*30;
+    sprite.alpha = 0.95;
+    fxContainer.addChild(sprite); particles.push(sprite);
+  }
+}
 
-      const nameLabel = document.createElement('div');
-      nameLabel.className = 'name_label';
-      nameLabel.textContent = '—';
-      msg.appendChild(nameLabel);
+app.ticker.add(()=>{
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -=1; p.alpha *= 0.99;
+    p.rotation += 0.05;
+    if(p.life<=0){ fxContainer.removeChild(p); particles.splice(i,1); }
+  }
+});
 
-      const textArea = document.createElement('div');
-      textArea.id = 'fallback_text';
-      textArea.style.marginTop = '8px';
-      msg.appendChild(textArea);
+// Resize handler to keep full screen sprites scaled
+function fitSpriteToScreen(sprite){ sprite.width = app.screen.width; sprite.height = app.screen.height; }
+fitSpriteToScreen(currentBgSprite);
+window.addEventListener('resize', ()=>{ fitSpriteToScreen(currentBgSprite); characters.Alice.y = app.screen.height*0.9; characters.Bob.y = app.screen.height*0.9; });
 
-      const choiceBox = document.createElement('div');
-      choiceBox.id = 'fallback_choices';
-      choiceBox.className = 'choice_box';
-      msg.appendChild(choiceBox);
-
-      // typed.js wrapper
-      function showLine(speaker, text, opts = {}) {
-        nameLabel.textContent = speaker || '';
-        textArea.innerHTML = '';
-        choiceBox.innerHTML = '';
-        if (window.NovelEffects && typeof NovelEffects.typeLine === 'function') {
-          // NovelEffects.typeLine expects a DOM area; but our NovelEffects.typeLine will try to find Tyrano elements.
-          // Instead use Typed directly here for reliability.
-          if (typeof Typed !== 'undefined') {
-            const typedTarget = document.createElement('span');
-            textArea.appendChild(typedTarget);
-            new Typed(typedTarget, {
-              strings: [text],
-              typeSpeed: opts.speed ? Math.max(10, Math.round(1000/opts.speed)) : 25,
-              showCursor: opts.cursor !== false,
-              onComplete: function(){ /* noop */ }
-            });
-          } else {
-            // fallback simple
-            textArea.textContent = text;
-          }
-        } else {
-          textArea.textContent = text;
-        }
-      }
-
-      // simple BGM using Howler if available
-      let fallbackBGM = null;
-      function playBGM(src){
-        if (typeof Howl !== 'undefined') {
-          if (fallbackBGM) {
-            try { fallbackBGM.fade(fallbackBGM.volume()||1, 0, 600); setTimeout(()=>fallbackBGM.stop(), 700); } catch(e){}
-          }
-          fallbackBGM = new Howl({ src: [src], loop: true, volume: 0 });
-          fallbackBGM.play();
-          fallbackBGM.fade(0,1,600);
-        } else {
-          // do nothing
-        }
-      }
-
-      // small scenario flow (mirrors first.ks)
-      playBGM('data/bgm/theme1.ogg');
-      showLine('主人公', '今日はなんだか雰囲気が違うな……', {speed:45});
-      setTimeout(()=> {
-        showLine('友人', '本当に？ どこが？', {speed:40});
-      }, 2200);
-
-      // show choices after a bit
-      setTimeout(()=> {
-        choiceBox.innerHTML = '';
-        const c1 = document.createElement('button');
-        c1.textContent = '穏やかに話す';
-        c1.onclick = () => {
-          // call soft particle
-          if (window.createSoftParticle) createSoftParticle();
-          showLine('主人公', 'いや、ただの気のせいかも。', {speed:45});
-          setTimeout(()=> proceedAfterEffect('soft'), 1400);
-        };
-        const c2 = document.createElement('button');
-        c2.textContent = '少し怒鳴る';
-        c2.onclick = () => {
-          if (window.createAngryRipple) createAngryRipple();
-          showLine('主人公', 'なんで分からないんだよ！！', {speed:40});
-          setTimeout(()=> proceedAfterEffect('angry'), 1400);
-        };
-        choiceBox.appendChild(c1);
-        choiceBox.appendChild(c2);
-      }, 4200);
-
-      function proceedAfterEffect(kind){
-        // blackout -> switch background -> change BGM -> unblackout
-        if (window.blackout && window.switchStage && window.unblackout && window.fadeToBGM) {
-          blackout(0.6, function(){
-            switchStage('data/image/bg_stage2.jpg');
-            fadeToBGM('data/bgm/theme2.ogg', 1.0);
-            unblackout(0.6);
-          });
-        } else {
-          // fallback: instant switch
-          bg.style.backgroundImage = 'url("data/image/bg_stage2.jpg")';
-        }
-
-        // now continue conversation with a choice
-        setTimeout(()=> {
-          showLine('友人', '……ここでは話しにくいから移動しよう。', {speed:45});
-          // next choices
-          setTimeout(()=> {
-            choiceBox.innerHTML = '';
-            const a = document.createElement('button');
-            a.textContent = '誤解を解く';
-            a.onclick = () => {
-              if (window.createConfetti) createConfetti();
-              showLine('主人公', 'ごめん、誤解だった。', {speed:45});
-              setTimeout(()=> endingGood(), 1200);
-            };
-            const b = document.createElement('button');
-            b.textContent = 'そのまま去る';
-            b.onclick = () => {
-              if (window.createDust) createDust();
-              showLine('主人公', '……もういい。', {speed:45});
-              setTimeout(()=> endingBad(), 1200);
-            };
-            choiceBox.appendChild(a);
-            choiceBox.appendChild(b);
-          }, 1000);
-        }, 900);
-      }
-
-      function endingGood(){
-        if (window.blackout && window.createParticleBurst) {
-          blackout(0.6, function(){ createParticleBurst(); });
-        }
-        showLine('友人', 'またゆっくり話そう。', {speed:45});
-        // end: stop BGM
-        if (fallbackBGM) try { fallbackBGM.fade(1, 0, 1200); setTimeout(()=>fallbackBGM.stop(), 1300); } catch(e){}
-      }
-
-      function endingBad(){
-        if (window.blackout && window.createLonelyFade) {
-          blackout(0.9, function(){ createLonelyFade(); });
-        }
-        showLine('友人', '……気をつけてね。', {speed:45});
-        if (fallbackBGM) try { fallbackBGM.fade(1, 0, 1200); setTimeout(()=>fallbackBGM.stop(), 1300); } catch(e){}
-      }
-    }
-
-    // On load: try Tyrano, otherwise fallback
-    window.addEventListener('load', function(){
-      // small timeout so scripts loaded
-      setTimeout(function(){
-        const ok = startTyranoIfPossible();
-        if (!ok) {
-          // If tyrano exists but old tyrano.js triggers AC_FL_RunContent error earlier,
-          // that can have aborted execution. We still try fallback.
-          startFallbackDemo();
-        }
-      }, 200);
+// -------------------- Helper API to be used by Monogatari script --------------------
+const GameAPI = {
+  showCharacter(name){
+    const s = characters[name]; if(!s) return Promise.resolve();
+    return new Promise(res=>{
+      gsap.to(s, {alpha:1, duration:0.8, x: s.x, ease:'power2.out', onComplete:res});
     });
+  },
+  hideCharacter(name){
+    const s = characters[name]; if(!s) return Promise.resolve();
+    return new Promise(res=>{
+      gsap.to(s, {alpha:0, duration:0.6, onComplete:res});
+    });
+  },
+  switchStage(stage){
+    return new Promise(res=>{
+      const tex = bgTextures[stage] || bgTextures.classroom;
+      const next = new PIXI.Sprite(tex); next.width = app.screen.width; next.height = app.screen.height; next.alpha = 0;
+      bgContainer.addChild(next);
+      gsap.to(next, {alpha:1, duration:0.8});
+      gsap.to(currentBgSprite, {alpha:0, duration:0.8, onComplete:()=>{ bgContainer.removeChild(currentBgSprite); currentBgSprite = next; res(); }});
+    });
+  },
+  particleAt(name){
+    const s = characters[name]; if(!s) return; spawnParticles(s.x, s.y - s.height*0.5, 30);
+  },
+  shakeScreen(){
+    const el = app.view;
+    return gsap.fromTo(el, {x:0},{x:10,duration:0.06,yoyo:true,repeat:5, onComplete:()=>gsap.set(el,{x:0})});
+  },
+  fadeToBlack(duration=1){
+    return gsap.to('#fade-overlay',{opacity:1,duration:duration});
+  },
+  fadeFromBlack(duration=1){
+    return gsap.to('#fade-overlay',{opacity:0,duration:duration});
+  }
+};
 
-  })();
-  </script>
+// -------------------- Monogatari config --------------------
+Monogatari.settings({
+  'allowReplay': true
+});
+
+Monogatari.characters({
+  'a': {name: 'Alice', color: '#ff7f7f'},
+  'b': {name: 'Bob', color: '#7fbfff'}
+});
+
+Monogatari.assets({
+  'scenes': {
+    'classroom': 'classroom',
+    'park': 'park',
+    'city': 'city'
+  }
+});
+
+// We add helper functions into Monogatari so they can be awaited in scripts
+function callGameAPI(fnName, ...args){
+  return function(){
+    return GameAPI[fnName](...args);
+  };
+}
+
+Monogatari.script({
+  'Start': [
+    callGameAPI('switchStage','classroom'),
+    callGameAPI('fadeFromBlack',0),
+    callGameAPI('showCharacter','Alice'),
+    'a ふわぁ...今日はいい天気だね。',
+    callGameAPI('showCharacter','Bob'),
+    'b そうだな。散歩してみるか？',
+    {
+      'Choice': {
+        'Dialog': 'どっちをする？',
+        'Do you want to go to the park?': {
+          'Do': [
+            callGameAPI('switchStage','park'),
+            callGameAPI('particleAt','Alice'),
+            'a 公園に来たよ！きれいだね。',
+            callGameAPI('shakeScreen'),
+            'b うわっ、地面が揺れた！',
+            'a 何か光ってる…',
+            callGameAPI('particleAt','Bob'),
+            'b どうする？',
+            {
+              'Choice': {
+                'Dialog': 'どうする？',
+                '調べる': {
+                  'Do': [
+                    callGameAPI('fadeToBlack',0.8),
+                    function(){ return Monogatari.action('Wait', 800); },
+                    callGameAPI('switchStage','city'),
+                    callGameAPI('fadeFromBlack',0.8),
+                    'a えっ！？ここはどこだ……',
+                    'b うわ、暗い街だ。',
+                    'a もう一度話を続けよう。',
+                    'end'
+                  ]
+                },
+                'やめる': {
+                  'Do': [
+                    'a まあ、やっぱりやめておこう。',
+                    callGameAPI('particleAt','Alice'),
+                    'b そうだね、戻ろう。',
+                    'end'
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        'Stay and talk': {
+          'Do': [
+            'a ここにいたいな。',
+            callGameAPI('particleAt','Bob'),
+            'b なら、話を続けよう。',
+            'end'
+          ]
+        }
+      }
+    }
+  ]
+});
+
+// Boot Monogatari (it will inject UI into #game)
+Monogatari.init();
+
+// Small polyfill: Monogatari expects some assets paths, we map scene names to nothing because Pixi draws them
+Monogatari.storage({});
+
+</script>
 </body>
 </html>
