@@ -1,99 +1,15 @@
-/* style.css
-   Kiwi Maru を使ったメッセージ枠の見た目調整
-   Tyrano のクラス名はテーマやバージョンにより異なる可能性がありますが、
-   主要な部分（メッセージボックス）を上書きする想定です。
-*/
-
-:root{
-  --font-main: 'Kiwi Maru', serif;
-  --msg-bg: rgba(10,10,10,0.7);
-  --msg-border: rgba(255,255,255,0.06);
-  --accent: #ffd58a;
+body {
+    margin: 0;
+    background: #000;
+    font-family: "Kiwi Maru", serif;
 }
-
-/* 全体フォント */
-body, #tyrano_base {
-  font-family: var(--font-main);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: #000; /* Tyrano 背景がないときの保険 */
-  margin: 0;
-  padding: 0;
+.ks-text {
+    font-family: "Kiwi Maru", serif;
+    font-size: 20px;
+    color: #fff;
+    text-shadow: 0 0 4px #000;
 }
-
-/* メッセージウィンドウ（Tyrano の既存要素名によっては調整してください） */
-#tyrano_base .message_window,
-.kag_message_window {
-  width: calc(100% - 80px);
-  max-width: 1200px;
-  margin: 0 auto 30px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.65), rgba(10,10,10,0.75));
-  border: 1px solid var(--msg-border);
-  padding: 18px 22px;
-  border-radius: 14px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
-  color: #fff;
-  font-size: 18px;
-  line-height: 1.6;
-  position: relative;
-}
-
-/* キャラ名ラベル */
-#tyrano_base .name_label,
-.kag_name {
-  position: absolute;
-  left: 22px;
-  top: -28px;
-  background: var(--accent);
-  color: #222;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-weight: 700;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-
-/* 選択肢ボタン */
-#tyrano_base .choice_box,
-.kag_choice {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-}
-#tyrano_base .choice_box button,
-.kag_choice_button {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: transform .12s ease, background .12s;
-}
-#tyrano_base .choice_box button:hover,
-.kag_choice_button:hover{
-  transform: translateY(-4px);
-  background: rgba(255,255,255,0.11);
-}
-
-/* Message typing (Typed.js target) */
-#tyrano_base .typed-cursor{
-  display:inline-block;
-  margin-left:2px;
-  opacity: 1;
-  animation: blink 0.8s step-end infinite;
-}
-@keyframes blink {
-  50% { opacity: 0; }
-}
-
-/* 黒転（暗転）用 div */
-#novel_blackout {
-  pointer-events: none;
-  position: fixed;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  background: #000;
-  opacity: 0;
-  z-index: 99999;
+.ks-button {
+    font-family: "Kiwi Maru", serif;
+    font-size: 18px;
 }
