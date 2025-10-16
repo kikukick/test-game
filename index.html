@@ -1,318 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pixi + Monogatari + GSAP Demo</title>
+  <title>VN Template - Monogatari-like (GSAP + PIXI optional)</title>
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
-
-  <!-- CDNs -->
-  <!-- PIXI (from cdnjs) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.13.2/pixi.min.js"></script>
   <!-- GSAP -->
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
-  <!-- Monogatari (engine). Using a release from the official repo via jsDelivr -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Monogatari/Monogatari@v2.0.2/dist/monogatari.css">
-  <script src="https://cdn.jsdelivr.net/gh/Monogatari/Monogatari@v2.0.2/dist/monogatari.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.1.2/pixi.min.js"></script>
 
-  <style>
-    html,body{height:100%;margin:0;background:#111;color:#eee;font-family:'Noto Sans JP',system-ui, sans-serif}
-    #game-root{display:flex;height:100vh;width:100%;overflow:hidden}
-    #pixi-canvas{flex:1;position:relative}
-    /* Position monogatari UI on the right as an example */
-    .monogatari-container{width:420px;max-width:40%;background:transparent}
-
-    /* Override monogatari text box style to use custom font and look */
-    .monogatari .nm-box {
-      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(10,10,10,0.9));
-      border-radius: 12px;
-      padding: 18px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-      font-family: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
-      font-size: 16px;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.04);
-    }
-    .monogatari .nm-box .name {font-weight:700;color:#ffd47f}
-
-    /* Hide default monogatari background to let Pixi draw it */
-    .monogatari .background {display:none}
-
-    /* Quick responsive tweak */
-    @media (max-width:900px){
-      .monogatari-container{position:absolute;right:8px;bottom:8px;z-index:20;width:95%;max-width:none}
-      #pixi-canvas{height:100vh}
-    }
-
-    /* Small helper for overlay fade */
-    #fade-overlay{position:absolute;inset:0;background:#000;pointer-events:none;opacity:0;z-index:40}
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-<div id="game-root">
-  <div id="pixi-canvas"></div>
-  <div class="monogatari-container">
-    <!-- Monogatari injects UI here -->
-    <div id="game" class="monogatari"></div>
+  <div id="ui-top">
+    <button id="save-btn">Save</button>
+    <button id="load-btn">Load</button>
+    <button id="clear-save-btn">Clear Save</button>
   </div>
-</div>
 
-<div id="fade-overlay"></div>
+  <div id="game">
+    <div id="background"></div>
+    <div id="bg-overlay"></div>
+    <div id="pixi-container"></div>
 
-<script>
-// Wait for the DOM to be fully loaded before initializing PIXI
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    // -------------------- PIXI setup --------------------
-    const canvasContainer = document.getElementById('pixi-canvas');
-    if (!canvasContainer) {
-      throw new Error('Could not find #pixi-canvas element');
-    }
+    <div id="hud">
+      <div id="dialog-box" aria-live="polite">
+        <div id="speaker-name" class="hidden"></div>
+        <p id="dialog-text"></p>
+      </div>
 
-    // Clear any existing canvas
-    while (canvasContainer.firstChild) {
-      canvasContainer.removeChild(canvasContainer.firstChild);
-    }
+      <div id="choices"></div>
+    </div>
+  </div>
 
-    const app = new PIXI.Application({
-      width: 1280,
-      height: 720,
-      backgroundColor: 0x222222,
-      view: document.createElement('canvas'),
-      resizeTo: canvasContainer,
-      antialias: true,
-      autoDensity: true
-    });
-    
-    canvasContainer.appendChild(app.view);
-    
-    // Handle window resize
-    const resize = () => {
-      app.renderer.resize(canvasContainer.clientWidth, canvasContainer.clientHeight);
-    };
-    window.addEventListener('resize', resize);
-    resize();
-    
-    // Make app globally available for debugging
-    window.app = app;
-    
-    console.log('PIXI initialized successfully');
+  <div id="toast" class="hidden"></div>
 
-  // Stage container: backgrounds, characters, effects
-  const bgContainer = new PIXI.Container();
-  const charContainer = new PIXI.Container();
-  const fxContainer = new PIXI.Container();
-  app.stage.addChild(bgContainer, charContainer, fxContainer);
-
-  // Simple assets (using data urls / simple graphics so CDN-free demo)
-  // Backgrounds: generate plain-color textures for demo
-  function makeBgTexture(color){
-    const g = new PIXI.Graphics();
-    g.beginFill(color); g.drawRect(0,0,1280,720); g.endFill();
-    return app.renderer.generateTexture(g);
-  }
-  const bgTextures = {
-    classroom: makeBgTexture(0x2b2f4a),
-    park: makeBgTexture(0x2b5f4a),
-    city: makeBgTexture(0x3a2b4a)
-  };
-
-  let currentBgSprite = new PIXI.Sprite(bgTextures.classroom);
-  currentBgSprite.width = app.screen.width; currentBgSprite.height = app.screen.height;
-  bgContainer.addChild(currentBgSprite);
-
-  // Characters: simple colored rectangles with a name label texture
-  function makeCharacterSprite(name, color){
-    const g = new PIXI.Graphics();
-    g.beginFill(color); g.drawRoundedRect(0,0,320,520,12); g.endFill();
-    const texture = app.renderer.generateTexture(g);
-    const s = new PIXI.Sprite(texture);
-    s.anchor.set(0.5,1);
-    s.x = app.screen.width * 0.5;
-    s.y = app.screen.height * 0.9;
-    s.scale.set(0.9);
-    s.interactive = false;
-    s.name = name;
-    // Name tag
-    const nameText = new PIXI.Text(name, {fontFamily:'Noto Sans JP',fontSize:20,fill:0xffffff});
-    nameText.anchor.set(0.5,0);
-    nameText.y = -s.height - 10;
-    s.addChild(nameText);
-    return s;
-  }
-  const characters = {
-    Alice: makeCharacterSprite('Alice', 0xff7f7f),
-    Bob: makeCharacterSprite('Bob', 0x7fbfff)
-  };
-
-  // place characters off-screen initially
-  characters.Alice.x = app.screen.width * 0.3; characters.Alice.alpha = 0; charContainer.addChild(characters.Alice);
-  characters.Bob.x = app.screen.width * 0.7; characters.Bob.alpha = 0; charContainer.addChild(characters.Bob);
-
-  // Simple particle system (circles)
-  const particles = [];
-  function spawnParticles(x,y,amount=30){
-    for(let i=0;i<amount;i++){
-      const g = new PIXI.Graphics();
-      g.beginFill(0xffffff, 0.9); g.drawCircle(0,0,4); g.endFill();
-      const sprite = new PIXI.Sprite(app.renderer.generateTexture(g));
-      sprite.x = x; sprite.y = y;
-      sprite.vx = (Math.random()-0.5)*6; sprite.vy = (Math.random()-1.5)*6; sprite.life = 60 + Math.random()*30;
-      sprite.alpha = 0.95;
-      fxContainer.addChild(sprite); particles.push(sprite);
-    }
-  }
-
-  app.ticker.add(()=>{
-    for(let i=particles.length-1;i>=0;i--){
-      const p = particles[i];
-      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -=1; p.alpha *= 0.99;
-      p.rotation += 0.05;
-      if(p.life<=0){ fxContainer.removeChild(p); particles.splice(i,1); }
-    }
-  });
-
-  // Resize handler to keep full screen sprites scaled
-  function fitSpriteToScreen(sprite){ sprite.width = app.screen.width; sprite.height = app.screen.height; }
-  fitSpriteToScreen(currentBgSprite);
-  window.addEventListener('resize', ()=>{ fitSpriteToScreen(currentBgSprite); characters.Alice.y = app.screen.height*0.9; characters.Bob.y = app.screen.height*0.9; });
-
-  // -------------------- Helper API to be used by Monogatari script --------------------
-  const GameAPI = {
-    showCharacter(name){
-      const s = characters[name]; if(!s) return Promise.resolve();
-      return new Promise(res=>{
-        gsap.to(s, {alpha:1, duration:0.8, x: s.x, ease:'power2.out', onComplete:res});
-      });
-    },
-    hideCharacter(name){
-      const s = characters[name]; if(!s) return Promise.resolve();
-      return new Promise(res=>{
-        gsap.to(s, {alpha:0, duration:0.6, onComplete:res});
-      });
-    },
-    switchStage(stage){
-      return new Promise(res=>{
-        const tex = bgTextures[stage] || bgTextures.classroom;
-        const next = new PIXI.Sprite(tex); next.width = app.screen.width; next.height = app.screen.height; next.alpha = 0;
-        bgContainer.addChild(next);
-        gsap.to(next, {alpha:1, duration:0.8});
-        gsap.to(currentBgSprite, {alpha:0, duration:0.8, onComplete:()=>{ bgContainer.removeChild(currentBgSprite); currentBgSprite = next; res(); }});
-      });
-    },
-    particleAt(name){
-      const s = characters[name]; if(!s) return; spawnParticles(s.x, s.y - s.height*0.5, 30);
-    },
-    shakeScreen(){
-      const el = app.view;
-      return gsap.fromTo(el, {x:0},{x:10,duration:0.06,yoyo:true,repeat:5, onComplete:()=>gsap.set(el,{x:0})});
-    },
-    fadeToBlack(duration=1){
-      return gsap.to('#fade-overlay',{opacity:1,duration:duration});
-    },
-    fadeFromBlack(duration=1){
-      return gsap.to('#fade-overlay',{opacity:0,duration:duration});
-    }
-  };
-
-  // -------------------- Monogatari config --------------------
-  Monogatari.settings({
-    'allowReplay': true
-  });
-
-  Monogatari.characters({
-    'a': {name: 'Alice', color: '#ff7f7f'},
-    'b': {name: 'Bob', color: '#7fbfff'}
-  });
-
-  Monogatari.assets({
-    'scenes': {
-      'classroom': 'classroom',
-      'park': 'park',
-      'city': 'city'
-    }
-  });
-
-  // We add helper functions into Monogatari so they can be awaited in scripts
-  function callGameAPI(fnName, ...args){
-    return function(){
-      return GameAPI[fnName](...args);
-    };
-  }
-
-  Monogatari.script({
-    'Start': [
-      callGameAPI('switchStage','classroom'),
-      callGameAPI('fadeFromBlack',0),
-      callGameAPI('showCharacter','Alice'),
-      'a ふわぁ...今日はいい天気だね。',
-      callGameAPI('showCharacter','Bob'),
-      'b そうだな。散歩してみるか？',
-      {
-        'Choice': {
-          'Dialog': 'どっちをする？',
-          'Do you want to go to the park?': {
-            'Do': [
-              callGameAPI('switchStage','park'),
-              callGameAPI('particleAt','Alice'),
-              'a 公園に来たよ！きれいだね。',
-              callGameAPI('shakeScreen'),
-              'b うわっ、地面が揺れた！',
-              'a 何か光ってる…',
-              callGameAPI('particleAt','Bob'),
-              'b どうする？',
-              {
-                'Choice': {
-                  'Dialog': 'どうする？',
-                  '調べる': {
-                    'Do': [
-                      callGameAPI('fadeToBlack',0.8),
-                      function(){ return Monogatari.action('Wait', 800); },
-                      callGameAPI('switchStage','city'),
-                      callGameAPI('fadeFromBlack',0.8),
-                      'a えっ！？ここはどこだ……',
-                      'b うわ、暗い街だ。',
-                      'a もう一度話を続けよう。',
-                      'end'
-                    ]
-                  },
-                  'やめる': {
-                    'Do': [
-                      'a まあ、やっぱりやめておこう。',
-                      callGameAPI('particleAt','Alice'),
-                      'b そうだね、戻ろう。',
-                      'end'
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          'Stay and talk': {
-            'Do': [
-              'a ここにいたいな。',
-              callGameAPI('particleAt','Bob'),
-              'b なら、話を続けよう。',
-              'end'
-            ]
-          }
-        }
-      }
-    ]
-  });
-
-  // Boot Monogatari (it will inject UI into #game)
-  Monogatari.init();
-
-  // Small polyfill: Monogatari expects some assets paths, we map scene names to nothing because Pixi draws them
-  Monogatari.storage({});
-
-}); // End of DOMContentLoaded
-
-
-</script>
+  <script src="script.js"></script>
 </body>
 </html>
