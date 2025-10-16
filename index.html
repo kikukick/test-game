@@ -65,17 +65,41 @@
 <script>
 // Wait for the DOM to be fully loaded before initializing PIXI
 document.addEventListener('DOMContentLoaded', () => {
-  // -------------------- PIXI setup --------------------
-  const app = new PIXI.Application({
-    width: 1280,
-    height: 720,
-    backgroundColor: 0x222222,
-    resizeTo: document.getElementById('pixi-canvas')
-  });
-  document.getElementById('pixi-canvas').appendChild(app.view);
-  
-  // Make app globally available for debugging
-  window.app = app;
+  try {
+    // -------------------- PIXI setup --------------------
+    const canvasContainer = document.getElementById('pixi-canvas');
+    if (!canvasContainer) {
+      throw new Error('Could not find #pixi-canvas element');
+    }
+
+    // Clear any existing canvas
+    while (canvasContainer.firstChild) {
+      canvasContainer.removeChild(canvasContainer.firstChild);
+    }
+
+    const app = new PIXI.Application({
+      width: 1280,
+      height: 720,
+      backgroundColor: 0x222222,
+      view: document.createElement('canvas'),
+      resizeTo: canvasContainer,
+      antialias: true,
+      autoDensity: true
+    });
+    
+    canvasContainer.appendChild(app.view);
+    
+    // Handle window resize
+    const resize = () => {
+      app.renderer.resize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+    };
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // Make app globally available for debugging
+    window.app = app;
+    
+    console.log('PIXI initialized successfully');
 
   // Stage container: backgrounds, characters, effects
   const bgContainer = new PIXI.Container();
