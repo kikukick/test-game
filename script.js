@@ -147,18 +147,31 @@ function darkenOnly(duration = 0.5, onComplete) {
    それ以外は DOM 上の dialogText に GSAP でグッバインゴ
 */
 function showTextLine(lineObj) {
+  if (!lineObj) return;
+  
   choicesBox.innerHTML = '';
   choicesBox.classList.remove('active');
 
   if (lineObj.bg) {
-    changeBackground(lineObj.bg);
+    changeBackground(lineObj.bg, () => {
+      // 背景変更後にテキストを表示
+      displayText(lineObj);
+    });
   } else if (lineObj.dark) {
-    darkenOnly();
+    darkenOnly(0.5, () => {
+      // 暗転後にテキストを表示
+      displayText(lineObj);
+    });
+  } else {
+    // 背景変更がない場合はそのままテキストを表示
+    displayText(lineObj);
   }
+}
 
+function displayText(lineObj) {
   const txt = lineObj.text || '';
 
-  // Pixi
+  // Pixiエフェクトが有効で、Pixiが利用可能な場合
   if (lineObj.pixiEffect && usePixi && pixiText) {
     dialogText.textContent = '';
     gsap.killTweensOf(dialogText);
@@ -173,13 +186,29 @@ function showTextLine(lineObj) {
     return;
   }
 
+  // 通常のDOMベースのテキスト表示
   gsap.killTweensOf(dialogText);
   dialogText.style.opacity = 0;
   dialogText.textContent = txt;
-  gsap.fromTo(dialogText, { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' });
-
-  dialogText.onclick = null;
-  attachAdvanceOnHUD();
+  
+  // スピーカー名がある場合は表示
+  if (lineObj.speaker) {
+    speakerName.textContent = lineObj.speaker;
+    speakerName.classList.remove('hidden');
+  } else {
+    speakerName.classList.add('hidden');
+  }
+  
+  gsap.fromTo(dialogText, 
+    { y: 12, opacity: 0 }, 
+    { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out', 
+      onComplete: () => {
+        // アニメーション完了後にクリックイベントを設定
+        dialogText.onclick = null;
+        attachAdvanceOnHUD();
+      }
+    }
+  );
 }
 
 function attachAdvanceOnHUD() {
@@ -323,14 +352,38 @@ loadBtn.addEventListener('click', loadGame);
 clearSaveBtn.addEventListener('click', clearSave);
 
 function start() {
-  if (scenes.start && scenes.start[0] && scenes.start[0].bg) {
+  // セーブデータを確認
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (raw) {
+    try {
+      const state = JSON.parse(raw);
+      if (state.currentScene && scenes[state.currentScene]) {
+        currentScene = state.currentScene;
+        lineIndex = state.lineIndex || 0;
+      }
+    } catch (e) {
+      console.error('Failed to load save data:', e);
+    }
+  }
+
+  // 背景画像を設定
+  const currentLine = getCurrentLine();
+  if (currentLine && currentLine.bg) {
+    bgDiv.style.backgroundImage = `url("${currentLine.bg}")`;
+  } else if (scenes.start && scenes.start[0] && scenes.start[0].bg) {
     bgDiv.style.backgroundImage = `url("${scenes.start[0].bg}")`;
   } else {
-    bgDiv.style.backgroundImage = `url("https://picsum.photos/1280/720?blur=2")`;
+    bgDiv.style.backgroundImage = 'url("https://picsum.photos/1280/720?blur=2")';
   }
+  
+  // 現在のシーンを表示
   showCurrentLine();
 }
-start();
+
+// DOMが読み込まれたらスタート
+document.addEventListener('DOMContentLoaded', () => {
+  start();
+});
 
 window.VN = {
   changeBackground,
