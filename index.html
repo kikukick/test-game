@@ -2,36 +2,37 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Pixi + GSAP Visual Novel Template</title>
+  <title>JSON-driven Pixi + GSAP Visual Novel</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <!-- ライブラリ（CDN） -->
+  <!-- CDN: GSAP / PIXI -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 親コンテナ -->
   <div id="game-root">
-    <!-- Pixi を描画する領域 -->
     <div id="pixi-container"></div>
 
-    <!-- DOM オーバーレイ（選択肢・セーブなど）-->
+    <!-- UI オーバーレイ -->
     <div id="ui-overlay">
       <div id="top-controls">
-        <button id="save-btn">セーブ</button>
-        <button id="load-btn">ロード</button>
-        <button id="restart-btn">リスタート</button>
+        <!-- JSON読み込みUIはデプロイ版では削除 -->
+        <button id="save-btn" class="game-btn">セーブ</button>
+        <button id="load-btn" class="game-btn">ロード</button>
+        <button id="restart-btn" class="game-btn">リスタート</button>
         <span id="save-status"></span>
       </div>
 
-      <!-- 選択肢エリア（2〜4択まで対応） -->
       <div id="choices" aria-live="polite"></div>
 
-      <!-- 補助テキスト（クリックで進める旨など） -->
-      <div id="hint">クリックで進む / 選択肢で分岐</div>
+      <div id="bottom-ui">
+        <div id="meta-info"></div>
+        <div id="hint">クリックで進む / 選択で分岐</div>
+      </div>
     </div>
   </div>
 
-  <!-- スクリプト -->
+  <!-- script は先に提示した自動読み込み版 script.js を使ってください -->
   <script src="script.js"></script>
 </body>
 </html>
