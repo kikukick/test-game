@@ -1,113 +1,128 @@
-/* ベース */
-html,body {
-  height:100%;
-  margin:0;
-  padding:0;
-  background: #000;
-  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
+/* 全体レイアウトのリセット */
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  color: #fff;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Yu Gothic", "Noto Sans JP", sans-serif;
 }
 
-/* ゲームルート */
-#game-root {
-  position:relative;
-  width:100%;
-  height:100vh;
-  overflow:hidden;
-}
-
-/* Pixi コンテナ（フルスクリーン） */
+/* PIXIキャンバス配置 */
 #pixi-container {
-  width:100%;
-  height:100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 0;
 }
 
-/* UI オーバーレイ（ボタン等）*/
-#ui-overlay {
-  position:absolute;
-  left:0;
-  top:0;
-  width:100%;
-  height:100%;
-  pointer-events:none; /* デフォで Pixi に入力を通す。ボタンは個別で pointer-events:auto にする */
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
-  align-items:center;
-}
-
-/* Top controls */
-#top-controls {
-  position: absolute;
-  left:12px;
-  top:12px;
-  pointer-events:auto;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  z-index:40;
-}
-#top-controls button {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.18);
-  padding:6px 10px;
-  border-radius:6px;
-  cursor:pointer;
-}
-#top-controls button:hover { transform: translateY(-2px); }
-
-/* セーブ状態表示 */
-#save-status {
-  color:#9ad;
-  font-size:13px;
-}
-
-/* 選択肢エリア */
+/* 選択肢ボックス */
 #choices {
-  width:80%;
-  max-width:900px;
-  margin-bottom:110px;
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  pointer-events:auto;
-  z-index:30;
+  position: fixed;
+  bottom: 23%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  z-index: 10;
 }
 
-/* 選択肢ボタン */
-.choice-btn {
-  background: rgba(255,255,255,0.06);
+#choices button {
+  min-width: 220px;
+  padding: 10px 16px;
+  font-size: 17px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.12);
-  padding:12px 18px;
-  border-radius:10px;
-  min-width:140px;
-  text-align:center;
-  cursor:pointer;
-  font-size:16px;
-  transition:transform 0.12s, background 0.12s;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  cursor: pointer;
+  transition: 0.25s;
+  backdrop-filter: blur(4px);
 }
-.choice-btn:hover {
-  transform: translateY(-6px);
-  background: rgba(255,255,255,0.12);
-  color: #000;
+#choices button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
 }
 
-/* ヒント */
-#hint {
-  pointer-events:none;
-  margin-bottom:40px;
-  color: rgba(255,255,255,0.7);
-  font-size:14px;
-  z-index:20;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+/* 下部ボタン類配置（セーブ・ロード・リスタート） */
+#controls {
+  position: fixed;
+  bottom: 2.8%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
 }
 
-/* レスポンシブ微調整 */
-@media (max-width:600px) {
-  .choice-btn { min-width:100px; padding:10px; font-size:14px; }
-  #choices { gap:8px; margin-bottom:90px; }
+#controls button {
+  padding: 7px 15px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.25s;
+  backdrop-filter: blur(3px);
+}
+#controls button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 保存ステータス表示 */
+#save-status {
+  position: fixed;
+  bottom: 8%;
+  right: 2%;
+  font-size: 13px;
+  color: #aaa;
+  opacity: 0.8;
+  z-index: 30;
+  text-shadow: 0 0 3px #000;
+}
+
+/* メタ情報（好感度表示など） */
+#meta-info {
+  position: fixed;
+  top: 1.2%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: #eee;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  padding: 4px 12px;
+  backdrop-filter: blur(4px);
+  z-index: 40;
+  text-shadow: 0 0 3px #000;
+}
+
+/* スマホ向けレスポンシブ */
+@media (max-width: 768px) {
+  #choices button {
+    font-size: 15px;
+    min-width: 180px;
+  }
+  #controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #controls button {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+  #meta-info {
+    font-size: 13px;
+    padding: 3px 10px;
+  }
 }
