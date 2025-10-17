@@ -8,7 +8,7 @@
      - bg: 画像URL（この行で暗転→背景差替→フェードイン）
      - dark: true (暗転のみ)
      - pixiEffect: true (pixi があれば pixi 上で表示、なければ DOM+GSAP)
-     - シコシコ
+     - 
 */
 const scenes = {
   start: [
