@@ -1,0 +1,86 @@
+{
+  "title": "放課後の勝負",
+  "characters": [
+    { "name": "菊", "folder": "kiku" },
+    { "name": "太陽", "folder": "taiyo" }
+  ],
+  "assets": {
+    "bg": {
+      "classroom": "assets/bg/classroom.jpg",
+      "casino": "assets/bg/casino.jpg"
+    },
+    "chars": {
+      "kiku": {
+        "A1": "assets/char/kiku/normal.png",
+        "A2": "assets/char/kiku/smile.png",
+        "A3": "assets/char/kiku/serious.png"
+      },
+      "taiyo": {
+        "A1": "assets/char/taiyo/normal.png",
+        "A2": "assets/char/taiyo/laugh.png",
+        "A3": "assets/char/taiyo/shock.png"
+      }
+    }
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "bg": "classroom",
+      "lines": [
+        { "ex": "------------- シーン開始 -------------" },
+        { "name": "太陽", "face": "A1", "text": "よお菊、昨日の麻雀勝負、覚えてるか？" },
+        { "name": "菊", "face": "A3", "text": "ああ、あれは運が悪かっただけだ。今日もやる気か？" },
+        { "name": "太陽", "face": "A2", "text": "もちろん！勝負は続くってな！" },
+        { "name": "菊", "face": "A1", "text": "負けたら昼飯奢りでいいよな？" },
+        { 
+          "choices": [
+            { "text": "受けて立つ！", "next": "game_start" },
+            { "text": "やめとこう…", "next": "no_game" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "game_start",
+      "bg": "casino",
+      "lines": [
+        { "ex": "------------- 麻雀勝負開始 -------------" },
+        { "name": "太陽", "face": "A1", "text": "ようこそ地獄の卓へ。" },
+        { "name": "菊", "face": "A2", "text": "ふっ、今度は手加減しない。" },
+        { "name": "太陽", "face": "A3", "text": "おっと、そんなこと言って後悔するなよ？" },
+        { 
+          "choices": [
+            { "text": "勝負だ！", "next": "ending_win" },
+            { "text": "逃げる！", "next": "ending_lose" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_game",
+      "bg": "classroom",
+      "lines": [
+        { "name": "菊", "face": "A1", "text": "今日はやめておこう。宿題もあるし。" },
+        { "name": "太陽", "face": "A3", "text": "ちぇっ、つまんねーの。" },
+        { "name": "菊", "face": "A2", "text": "また今度な。" }
+      ]
+    },
+    {
+      "id": "ending_win",
+      "bg": "casino",
+      "lines": [
+        { "name": "菊", "face": "A2", "text": "ふふっ、どうだ。これが俺の実力だ。" },
+        { "name": "太陽", "face": "A3", "text": "ぐぬぬ…菊、お前強すぎだろ！" },
+        { "name": "菊", "face": "A1", "text": "じゃあ昼飯よろしくな。" }
+      ]
+    },
+    {
+      "id": "ending_lose",
+      "bg": "casino",
+      "lines": [
+        { "name": "太陽", "face": "A2", "text": "やっぱり俺の勝ち～！" },
+        { "name": "菊", "face": "A3", "text": "くそっ、次は絶対勝つ。" }
+      ]
+    }
+  ]
+}
