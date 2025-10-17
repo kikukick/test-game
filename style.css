@@ -46,4 +46,32 @@ html,body{height:100%;margin:0;font-family:"Yu Gothic","Hiragino Kaku Gothic Pro
 
 #toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:24px; background:rgba(0,0,0,0.7); color:#fff; padding:8px 14px; border-radius:8px; z-index:100; transition:opacity .25s; }
 
+/* 次へボタン */
+.next-button {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  z-index: 60;
+}
+
+.next-button:hover {
+  background: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.next-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
 .hidden{display:none}
